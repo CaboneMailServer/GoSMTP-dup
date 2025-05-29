@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"strings"
 
@@ -97,6 +98,8 @@ type Backend struct{}
 
 // NewSession is called after client greeting (EHLO, HELO).
 func (bkd *Backend) NewSession(c *serversmtp.Conn) (serversmtp.Session, error) {
+	log.Infof("New session : %s", c.Session())
+	log.Infof("Conn : %s", c.Conn())
 	var s serversmtp.Session = &Session{}
 	return s, nil
 }
@@ -126,7 +129,7 @@ func main() {
 	defer func(log *zap.SugaredLogger) {
 		err := log.Sync()
 		if err != nil {
-			log.Fatalf("zap log sync error %s", err)
+			panic(fmt.Sprintf("zap log sync error %s", err))
 		}
 	}(log)
 
