@@ -33,13 +33,13 @@ func (s *Session) Logout() error {
 }
 
 // Set return path for currently processed message.
-func (s *Session) Mail(from string, opts *serversmtp.MailOptions) error {
+func (s *Session) Mail(from string, _ *serversmtp.MailOptions) error {
 	s.from = from
 	return nil
 }
 
 // Add recipient for currently processed message.
-func (s *Session) Rcpt(to string, opts *serversmtp.RcptOptions) error {
+func (s *Session) Rcpt(to string, _ *serversmtp.RcptOptions) error {
 	s.to = append(s.to, to)
 	return nil
 }
@@ -123,7 +123,12 @@ func loadConfig() {
 
 func main() {
 	initLogger()
-	defer log.Sync()
+	defer func(log *zap.SugaredLogger) {
+		err := log.Sync()
+		if err != nil {
+			log.Fatalf("zap log sync error %s", err)
+		}
+	}(log)
 
 	loadConfig()
 
