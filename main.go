@@ -57,6 +57,7 @@ func (s *Session) relayMessageWithError() error {
 	from := s.from
 	to := s.to
 	msg := s.data.Bytes()
+	log.Infof("From: %s to %s msg:%s", from, to, msg)
 	// Premier envoi (serveur principal)
 	primary := destination_primary
 	host := strings.Split(primary, ":")[0]
@@ -98,10 +99,8 @@ type Backend struct{}
 
 // NewSession is called after client greeting (EHLO, HELO).
 func (bkd *Backend) NewSession(c *serversmtp.Conn) (serversmtp.Session, error) {
-	log.Infof("New session : %s", c.Session())
 	log.Infof("Conn : %s", c.Conn())
-	var s serversmtp.Session = &Session{}
-	return s, nil
+	return &Session{}, nil
 }
 
 func initLogger() {
