@@ -1,0 +1,11 @@
+smtp:
+  listen: "127.0.0.1:2525"
+  domain: "localhost"
+
+relay:
+  destination_primary: "mailprimary.example.com:25"
+  destination_backups:
+    - "mail_backup1.example.com:25"
+    - "mail_backup2.example.com:25"
+    - "mail_backup1.example.com:25"
+  timeout_seconds: 10
