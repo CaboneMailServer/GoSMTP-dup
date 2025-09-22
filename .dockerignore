@@ -1,0 +1,30 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+gosmtp-dup
+*.exe
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+config.yaml
