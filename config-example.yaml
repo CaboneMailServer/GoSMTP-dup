@@ -1,11 +1,24 @@
+# SMTP server configuration
 smtp:
+  # Address and port where the SMTP duplicator will listen for incoming connections
   listen: "127.0.0.1:2525"
+
+  # Domain name that the SMTP server announces itself as
+  # This appears in the SMTP greeting (220 response) and server identification
   domain: "localhost"
 
+# Email relay configuration
 relay:
+  # Primary destination server (REQUIRED)
+  # Emails are sent here synchronously - if this fails, the original send fails
   destination_primary: "mailprimary.example.com:25"
+
+  # Backup destination servers (OPTIONAL)
+  # Emails are duplicated to these servers asynchronously in the background
+  # Failures here are logged but don't affect the client
   destination_backups:
     - "mail_backup1.example.com:25"
     - "mail_backup2.example.com:25"
-    - "mail_backup1.example.com:25"
+
+  # Timeout in seconds for relay operations
   timeout_seconds: 10

@@ -42,10 +42,27 @@ relay:
 ### Configuration Options
 
 - `smtp.listen`: Address and port for the SMTP server to listen on
-- `smtp.domain`: Domain name for the SMTP server
+- `smtp.domain`: Domain name that the SMTP server announces itself as (used in SMTP greeting and protocol identification)
 - `relay.destination_primary`: Primary mail server (synchronous delivery)
 - `relay.destination_backups`: List of backup mail servers (asynchronous delivery)
 - `relay.timeout_seconds`: Timeout for relay operations
+
+### Environment Variables
+
+You can configure the application using environment variables with the `SMTP_DUP_` prefix:
+
+```bash
+# SMTP settings
+export SMTP_DUP_SMTP_LISTEN="0.0.0.0:2525"
+export SMTP_DUP_SMTP_DOMAIN="mail.example.com"
+
+# Relay settings
+export SMTP_DUP_RELAY_DESTINATION_PRIMARY="mailprimary.example.com:25"
+export SMTP_DUP_RELAY_DESTINATION_BACKUPS="mail1.backup.com:25,mail2.backup.com:25"
+export SMTP_DUP_RELAY_TIMEOUT_SECONDS="30"
+```
+
+Environment variables take precedence over config file values. The config file becomes optional when using environment variables.
 
 ## How It Works
 
@@ -127,7 +144,17 @@ go build -o gosmtp-dup
 # Pull the latest image
 docker pull ghcr.io/cabonemailserver/gosmtp-dup:latest
 
-# Run with Docker (mount config file)
+# Run with Docker (using environment variables)
+docker run -d \
+  --name smtp-duplicator \
+  -p 2525:2525 \
+  -e SMTP_DUP_SMTP_LISTEN="0.0.0.0:2525" \
+  -e SMTP_DUP_SMTP_DOMAIN="mail.example.com" \
+  -e SMTP_DUP_RELAY_DESTINATION_PRIMARY="mailprimary.example.com:25" \
+  -e SMTP_DUP_RELAY_DESTINATION_BACKUPS="mail1.backup.com:25,mail2.backup.com:25" \
+  ghcr.io/cabonemailserver/gosmtp-dup:latest
+
+# Or run with config file
 docker run -d \
   --name smtp-duplicator \
   -p 2525:2525 \

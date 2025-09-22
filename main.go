@@ -113,10 +113,22 @@ func loadConfig() {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("/etc/smtp-dup/")
+
+	// Set environment variable prefix
+	viper.SetEnvPrefix("SMTP_DUP")
 	viper.AutomaticEnv()
 
+	// Replace dots with underscores in env vars
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Set default values
+	viper.SetDefault("smtp.listen", "127.0.0.1:2525")
+	viper.SetDefault("smtp.domain", "localhost")
+	viper.SetDefault("relay.timeout_seconds", 10)
+
+	// Config file is optional when using env vars
 	if err := viper.ReadInConfig(); err != nil {
-		log.Fatalf("Error loading config: %v", err)
+		log.Infof("No config file found, using environment variables and defaults: %v", err)
 	}
 
 	destination_backups = viper.GetStringSlice("relay.destination_backups")

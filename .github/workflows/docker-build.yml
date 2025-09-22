@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Release
 
 on:
   push:
@@ -10,8 +10,50 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push:
+  build-binaries:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build binaries
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Build for multiple platforms
+          GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o gosmtp-dup-linux-amd64 .
+          GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -o gosmtp-dup-linux-arm64 .
+          GOOS=windows GOARCH=amd64 go build -ldflags "-s -w" -o gosmtp-dup-windows-amd64.exe .
+          GOOS=darwin GOARCH=amd64 go build -ldflags "-s -w" -o gosmtp-dup-darwin-amd64 .
+          GOOS=darwin GOARCH=arm64 go build -ldflags "-s -w" -o gosmtp-dup-darwin-arm64 .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            gosmtp-dup-*
+            config-example.yaml
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+
+  build-and-push-docker:
+    runs-on: ubuntu-latest
+    needs: build-binaries
     permissions:
       contents: read
       packages: write
@@ -20,45 +62,33 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Install Buildah
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y buildah
 
       - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | buildah login --username ${{ github.actor }} --password-stdin ${{ env.REGISTRY }}
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest,enable=${{ github.ref == format('refs/tags/{0}', github.event.repository.default_branch) || startsWith(github.ref, 'refs/tags/v') }}
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "latest=latest" >> $GITHUB_OUTPUT
 
-      - name: Build and push Docker image
-        id: build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: false
+      - name: Build and push with Buildah
+        run: |
+          IMAGE_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          VERSION="${{ steps.version.outputs.version }}"
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          subject-digest: ${{ steps.build.outputs.digest }}
-          push-to-registry: true
+          # Build the image
+          buildah build-using-dockerfile \
+            --tag "${IMAGE_NAME}:${VERSION}" \
+            --tag "${IMAGE_NAME}:latest" \
+            .
+
+          # Push both tags
+          buildah push "${IMAGE_NAME}:${VERSION}"
+          buildah push "${IMAGE_NAME}:latest"
