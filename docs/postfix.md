@@ -39,30 +39,15 @@ Let Postfix manage the duplicator as a permanent service:
 
 ```
 # SMTP duplicator permanent service
-127.0.0.1:2525  inet  n       -       y       -       1       spawn
-    user=postfix argv=/usr/local/bin/gosmtp-dup
-    directory=/etc/smtp-dup
-
-# Transport using the permanent service
-smtp-dup    unix  -       -       n       -       -       smtp
-    -o smtp_destination_concurrency_limit=2
+127.0.0.1:2525  inet  n       -       y       -       1       /usr/local/bin/gosmtp-dup
+    user=postfix directory=/etc/smtp-dup
 ```
 
-**Note**: Runs permanently like a service but managed by Postfix, uses the existing SMTP server mode.
+**Note**: Runs permanently as an inet service managed by Postfix. The proxy speaks SMTP natively, so Postfix can communicate with it directly.
 
 #### Option B: External Service
 
-Add this line to your `/etc/postfix/master.cf`:
-
-```
-# SMTP duplicator transport (external service)
-smtp-dup    unix  -       -       n       -       -       smtp
-    -o smtp_generic_maps=
-    -o smtp_destination_concurrency_limit=2
-    -o smtp_destination_rate_delay=1s
-    -o smtp_connect_timeout=30s
-    -o smtp_helo_timeout=30s
-```
+For external service, no changes needed in `/etc/postfix/master.cf`. Postfix will use the default SMTP transport to connect to the external service.
 
 ### Step 3: Configure Transport Maps
 
@@ -76,28 +61,20 @@ transport_maps = hash:/etc/postfix/transport
 
 Create `/etc/postfix/transport` to define which emails go through the duplicator:
 
-#### Option A: Specific Domains
+**For both options (same configuration):**
 
 ```
 # Route specific domains through the duplicator
-example.com     smtp-dup:[127.0.0.1]:2525
-.example.com    smtp-dup:[127.0.0.1]:2525
-test.com        smtp-dup:[127.0.0.1]:2525
-```
+example.com     [127.0.0.1]:2525
+.example.com    [127.0.0.1]:2525
+test.com        [127.0.0.1]:2525
 
-#### Option B: All Outbound Email
-
-```
 # Route all outbound email through duplicator
-*               smtp-dup:[127.0.0.1]:2525
-```
+*               [127.0.0.1]:2525
 
-#### Option C: Specific Recipients
-
-```
 # Route specific recipients
-user@example.com        smtp-dup:[127.0.0.1]:2525
-admin@example.com       smtp-dup:[127.0.0.1]:2525
+user@example.com        [127.0.0.1]:2525
+admin@example.com       [127.0.0.1]:2525
 ```
 
 ### Step 5: Update Transport Map and Reload
