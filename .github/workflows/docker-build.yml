@@ -53,7 +53,6 @@ jobs:
 
   build-and-push-docker:
     runs-on: ubuntu-latest
-    needs: build-binaries
     permissions:
       contents: read
       packages: write
@@ -81,6 +80,8 @@ jobs:
       - name: Build and push with Buildah
         run: |
           IMAGE_NAME="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          # Convert to lowercase for Docker registry compatibility
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
           VERSION="${{ steps.version.outputs.version }}"
 
           # Build the image
