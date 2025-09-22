@@ -31,10 +31,31 @@ relay:
 
 ### Step 2: Add Transport to master.cf
 
+You have two options for running the duplicator:
+
+#### Option A: Managed by Postfix Master (Recommended)
+
+Let Postfix manage the duplicator as a permanent service:
+
+```
+# SMTP duplicator permanent service
+127.0.0.1:2525  inet  n       -       y       -       1       spawn
+    user=postfix argv=/usr/local/bin/gosmtp-dup
+    directory=/etc/smtp-dup
+
+# Transport using the permanent service
+smtp-dup    unix  -       -       n       -       -       smtp
+    -o smtp_destination_concurrency_limit=2
+```
+
+**Note**: Runs permanently like a service but managed by Postfix, uses the existing SMTP server mode.
+
+#### Option B: External Service
+
 Add this line to your `/etc/postfix/master.cf`:
 
 ```
-# SMTP duplicator transport
+# SMTP duplicator transport (external service)
 smtp-dup    unix  -       -       n       -       -       smtp
     -o smtp_generic_maps=
     -o smtp_destination_concurrency_limit=2
@@ -85,12 +106,18 @@ admin@example.com       smtp-dup:[127.0.0.1]:2525
 # Compile the transport map
 postmap /etc/postfix/transport
 
+# For Option B: Start external service
+systemctl start gosmtp-dup
+systemctl enable gosmtp-dup
+
 # Reload Postfix configuration
 systemctl reload postfix
 
 # Verify configuration
 postfix check
 ```
+
+**Note**: For Option A (Postfix-managed), the duplicator process will be started automatically by Postfix when needed.
 
 ## Testing the Integration
 
@@ -261,9 +288,16 @@ journalctl -u gosmtp-dup | grep "error"
 ### Debugging Commands
 
 ```bash
+# For Option A (Postfix permanent service):
+# Check if service is running
+netstat -tulpn | grep 2525
+ps aux | grep gosmtp-dup
+
+# For Option B (External Service):
 # Test SMTP connection to duplicator
 echo -e "EHLO test\nQUIT" | nc 127.0.0.1 2525
 
+# General debugging:
 # Check Postfix configuration syntax
 postfix check
 
@@ -276,6 +310,13 @@ echo "test@example.com" | postmap -q - /etc/postfix/transport
 
 ## Performance Considerations
 
+### Option A (Postfix permanent service)
+- **Always Running**: Single permanent process managed by Postfix
+- **Better Performance**: No startup overhead per email
+- **Single Process**: maxproc=1 is sufficient due to goroutine concurrency
+- **Auto-restart**: Postfix will restart if process dies
+
+### Option B (External Service)
 - **Concurrency**: Limit `smtp_destination_concurrency_limit` to avoid overwhelming the duplicator
 - **Timeouts**: Set appropriate timeouts in both Postfix and the duplicator
 - **Queue Management**: Monitor Postfix queues for backup when duplicator is slow
