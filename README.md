@@ -131,7 +131,7 @@ docker pull ghcr.io/yourusername/gosmtp-dup:latest
 docker run -d \
   --name smtp-duplicator \
   -p 2525:2525 \
-  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  -v $(pwd)/config-example.yaml:/app/config-example.yaml:ro \
   ghcr.io/yourusername/gosmtp-dup:latest
 ```
 
@@ -145,7 +145,7 @@ docker build -t gosmtp-dup .
 docker run -d \
   --name smtp-duplicator \
   -p 2525:2525 \
-  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  -v $(pwd)/config-example.yaml:/app/config-example.yaml:ro \
   gosmtp-dup
 
 # Run with Docker Compose
@@ -161,17 +161,47 @@ version: '3.8'
 
 services:
   smtp-duplicator:
-    build: .
+    image: ghcr.io/yourusername/gosmtp-dup:latest
+    # Or build locally: build: .
     ports:
       - "2525:2525"
     volumes:
-      - ./config.yaml:/app/config.yaml:ro
+      - ./config-example.yaml:/app/config-example.yaml:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "2525"]
       interval: 30s
       timeout: 10s
       retries: 3
+```
+
+## CI/CD
+
+The project includes a GitHub Actions workflow that automatically:
+
+- **Builds Docker images** for `linux/amd64` and `linux/arm64` platforms
+- **Publishes to GitHub Container Registry** (`ghcr.io`)
+- **Creates tagged releases** when you push git tags (e.g., `v1.0.0`)
+- **Generates build attestations** for security and provenance
+
+### Available Tags
+
+- `latest` - Latest build from main branch
+- `vX.Y.Z` - Specific version releases
+- `main` - Latest main branch build
+- `develop` - Latest develop branch build
+
+### Using Released Images
+
+```bash
+# Use latest stable release
+docker pull ghcr.io/yourusername/gosmtp-dup:latest
+
+# Use specific version
+docker pull ghcr.io/yourusername/gosmtp-dup:v1.0.0
+
+# Use development version
+docker pull ghcr.io/yourusername/gosmtp-dup:develop
 ```
 
 ## Dependencies
