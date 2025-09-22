@@ -109,12 +109,69 @@ This configuration will route emails for `example.com` and its subdomains throug
 
 ## Building and Running
 
+### Native Build
+
 ```bash
 # Build the application
 go build -o gosmtp-dup
 
 # Run with configuration file in current directory
 ./gosmtp-dup
+```
+
+### Docker
+
+#### Using Pre-built Image from GitHub Registry
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/yourusername/gosmtp-dup:latest
+
+# Run with Docker (mount config file)
+docker run -d \
+  --name smtp-duplicator \
+  -p 2525:2525 \
+  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  ghcr.io/yourusername/gosmtp-dup:latest
+```
+
+#### Building Locally
+
+```bash
+# Build Docker image
+docker build -t gosmtp-dup .
+
+# Run with Docker (mount config file)
+docker run -d \
+  --name smtp-duplicator \
+  -p 2525:2525 \
+  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  gosmtp-dup
+
+# Run with Docker Compose
+docker-compose up -d
+```
+
+#### Docker Compose Example
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  smtp-duplicator:
+    build: .
+    ports:
+      - "2525:2525"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2525"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 ```
 
 ## Dependencies
