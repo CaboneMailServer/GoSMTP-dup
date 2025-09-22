@@ -11,6 +11,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
     {% include head-custom.html %}
+
+    <!-- Mermaid.js support -->
+    <script src="{{ '/assets/js/mermaid-init.js' | relative_url }}"></script>
   </head>
   <body>
     <a id="skip-to-content" href="#content">Skip to the content.</a>
@@ -38,6 +41,7 @@
         <a href="{{ '/docs/postfix.html' | relative_url }}">📧 Postfix</a>
         <a href="https://github.com/CaboneMailServer/GoSMTP-dup/releases">📦 Releases</a>
         <a href="https://github.com/CaboneMailServer/GoSMTP-dup/pkgs/container/gosmtp-dup">🐳 Images</a>
+        <a href="{{ '/LICENSE.md' | relative_url }}">📄 License</a>
       </div>
 
       {{ content }}

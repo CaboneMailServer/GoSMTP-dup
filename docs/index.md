@@ -101,13 +101,47 @@ chmod +x gosmtp-dup-linux-amd64
 - **Disaster recovery**: Maintain backup mail servers
 - **Load distribution**: Distribute email load across servers
 
-## Documentation
+## Documentation Index
 
-- [Installation](installation.html)
-- [Configuration](configuration.html)
-- [Postfix Integration](postfix.html)
-- [Docker Usage](docker.html)
-- [Environment Variables](environment.html)
+### 📥 [Installation Guide](installation.html)
+- Binary installation for Linux, Windows, and macOS
+- Docker installation and image building from source
+- Source compilation with Go 1.24+
+- Systemd service setup for Linux systems
+- Installation verification and testing
+
+### ⚙️ [Configuration Reference](configuration.html)
+- Complete YAML configuration options
+- Configuration file locations and search paths
+- Primary vs backup destination behavior explanation
+- Migration configuration examples and strategies
+- High availability and load distribution setups
+
+### 🌍 [Environment Variables](environment.html)
+- Complete environment variable reference with `SMTP_DUP_` prefix
+- Docker and Kubernetes deployment examples
+- Configuration priority rules (env vars vs config file)
+- Array value formatting for backup destinations
+- Default values and optional settings
+
+### 🐳 [Docker Usage](docker.html)
+- Docker run commands with various configuration methods
+- Docker Compose configurations and examples
+- Kubernetes deployment manifests and services
+- Container health checks and monitoring setup
+- Troubleshooting guide for common Docker issues
+
+### 📧 [Postfix Integration](postfix.html)
+- Step-by-step Postfix integration guide
+- Transport maps configuration and examples
+- Migration scenarios and phased rollout strategies
+- Monitoring and logging configuration
+- Performance considerations and optimization tips
+
+### 📄 [License](../LICENSE.md)
+- MIT License full text and explanation
+- Usage permissions and requirements
+- Contributing guidelines and license compatibility
 
 ## Download
 
@@ -126,7 +160,7 @@ chmod +x gosmtp-dup-linux-amd64
 
 ## License
 
-Licensed under the [MIT License](https://github.com/CaboneMailServer/GoSMTP-dup/blob/main/LICENSE).
+Licensed under the [MIT License](../LICENSE.md) - see the [LICENSE.md](../LICENSE.md) file for full details.
 
 ## Contributing
 

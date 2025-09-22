@@ -10,3 +10,8 @@ markdown: kramdown
 kramdown:
   input: GFM
   syntax_highlighter: rouge
+
+# Mermaid configuration
+mermaid:
+  # Enable mermaid diagrams
+  enabled: true

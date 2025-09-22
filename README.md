@@ -145,7 +145,7 @@ export SMTP_DUP_RELAY_DESTINATION_BACKUPS="backup1.example.com:25,backup2.exampl
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE.md](LICENSE.md) file for details.
 
 ## Contributing
 
