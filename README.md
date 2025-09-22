@@ -10,198 +10,144 @@ This Go application acts as an SMTP proxy that receives emails and forwards them
 
 The main purpose of this program is to enable **smooth migration from one mail server to another** (or multiple servers) by duplicating traffic in real-time. This allows you to gradually transition your mail infrastructure while ensuring no emails are lost during the migration process.
 
+## Architecture
+
+```mermaid
+graph TD
+    A[Email Client] -->|SMTP| B[Postfix Server]
+    B -->|Transport Map| C[GoSMTP-dup :2525]
+
+    C -->|Synchronous| D[Primary Mail Server]
+    C -->|Asynchronous| E[Backup Mail Server 1]
+    C -->|Asynchronous| F[Backup Mail Server 2]
+
+    D -->|Success/Failure| C
+    E -.->|Background| C
+    F -.->|Background| C
+
+    C -->|Response| B
+    B -->|Response| A
+
+    style C fill:#e1f5fe
+    style D fill:#c8e6c9
+    style E fill:#fff3e0
+    style F fill:#fff3e0
+    style B fill:#f3e5f5
+
+    classDef primary stroke:#4caf50,stroke-width:3px
+    classDef backup stroke:#ff9800,stroke-width:2px,stroke-dasharray: 5 5
+    classDef proxy stroke:#2196f3,stroke-width:3px
+
+    class D primary
+    class E,F backup
+    class C proxy
+```
+
+**Flow:**
+1. Email clients send to Postfix
+2. Postfix routes via transport maps to GoSMTP-dup
+3. GoSMTP-dup sends synchronously to primary server (must succeed)
+4. GoSMTP-dup sends asynchronously to backup servers (failures logged only)
+5. Response based on primary server result
+
 ## Features
 
-- **Dual delivery mode**: Synchronous delivery to primary server, asynchronous delivery to backups
-- **High availability**: Email redundancy across multiple servers
-- **Configurable**: YAML-based configuration for easy deployment
-- **Logging**: Comprehensive logging with structured output using Zap
-- **SMTP compliance**: Full SMTP protocol support with UTF-8 encoding
+- ✅ **Dual delivery mode**: Synchronous primary, asynchronous backups
+- ✅ **High availability**: Email redundancy across multiple servers
+- ✅ **Environment variables**: Configure via env vars or YAML
+- ✅ **Docker ready**: Multi-architecture containers
+- ✅ **Postfix integration**: Easy integration with existing mail servers
+- ✅ **Structured logging**: Comprehensive logging with Zap
 
-## Configuration
+## Documentation
 
-The application uses a `config.yaml` file that can be placed in:
-- Current directory (`.`)
-- `/etc/smtp-dup/`
+📖 **Complete documentation available at: [https://cabonemailserver.github.io/GoSMTP-dup/](https://cabonemailserver.github.io/GoSMTP-dup/)**
 
-### Example Configuration
+### Quick Links
 
-```yaml
-smtp:
-  listen: "127.0.0.1:2525"
-  domain: "localhost"
+| Topic | Description |
+|-------|-------------|
+| [Installation](https://cabonemailserver.github.io/GoSMTP-dup/docs/installation.html) | Binary, Docker, and source installation |
+| [Configuration](https://cabonemailserver.github.io/GoSMTP-dup/docs/configuration.html) | YAML configuration options and examples |
+| [Environment Variables](https://cabonemailserver.github.io/GoSMTP-dup/docs/environment.html) | Complete env var configuration guide |
+| [Docker Usage](https://cabonemailserver.github.io/GoSMTP-dup/docs/docker.html) | Docker, Docker Compose, and Kubernetes |
+| [Postfix Integration](https://cabonemailserver.github.io/GoSMTP-dup/docs/postfix.html) | Step-by-step Postfix integration |
 
-relay:
-  destination_primary: "mailprimary.example.com:25"
-  destination_backups:
-    - "mail_backup1.example.com:25"
-    - "mail_backup2.example.com:25"
-  timeout_seconds: 10
-```
+## Quick Start
 
-### Configuration Options
-
-- `smtp.listen`: Address and port for the SMTP server to listen on
-- `smtp.domain`: Domain name that the SMTP server announces itself as (used in SMTP greeting and protocol identification)
-- `relay.destination_primary`: Primary mail server (synchronous delivery)
-- `relay.destination_backups`: List of backup mail servers (asynchronous delivery)
-- `relay.timeout_seconds`: Timeout for relay operations
-
-### Environment Variables
-
-You can configure the application using environment variables with the `SMTP_DUP_` prefix:
+### Docker (Recommended)
 
 ```bash
-# SMTP settings
-export SMTP_DUP_SMTP_LISTEN="0.0.0.0:2525"
-export SMTP_DUP_SMTP_DOMAIN="mail.example.com"
-
-# Relay settings
-export SMTP_DUP_RELAY_DESTINATION_PRIMARY="mailprimary.example.com:25"
-export SMTP_DUP_RELAY_DESTINATION_BACKUPS="mail1.backup.com:25,mail2.backup.com:25"
-export SMTP_DUP_RELAY_TIMEOUT_SECONDS="30"
-```
-
-Environment variables take precedence over config file values. The config file becomes optional when using environment variables.
-
-## How It Works
-
-1. **Receives SMTP connections** on the configured listen address
-2. **Forwards to primary server** synchronously - if this fails, the client receives an error
-3. **Forwards to backup servers** asynchronously in the background - failures are logged but don't affect the client
-4. **Logs all operations** for monitoring and debugging
-
-## Use Cases
-
-- **Smooth mail server migration**: Gradually migrate from old to new mail servers with real-time duplication
-- **Email backup and redundancy**: Ensure emails are delivered to multiple servers
-- **Mail archiving**: Send copies to archive servers while delivering to production
-- **Load distribution**: Distribute email load across multiple servers
-- **Disaster recovery**: Maintain backup mail servers for business continuity
-
-## Integration with Postfix
-
-To use this duplicator with Postfix, you can configure it as a transport in your `master.cf` file:
-
-### Step 1: Add to master.cf
-
-Add this line to your `/etc/postfix/master.cf`:
-
-```
-# SMTP duplicator transport
-smtp-dup    unix  -       -       n       -       -       smtp
-    -o smtp_generic_maps=
-    -o smtp_destination_concurrency_limit=2
-    -o smtp_destination_rate_delay=1s
-    -o smtp_connect_timeout=30s
-    -o smtp_helo_timeout=30s
-```
-
-### Step 2: Configure transport maps
-
-In your `/etc/postfix/main.cf`, add:
-
-```
-transport_maps = hash:/etc/postfix/transport
-```
-
-### Step 3: Create transport file
-
-Create `/etc/postfix/transport`:
-
-```
-# Route specific domains through the duplicator
-example.com     smtp-dup:[127.0.0.1]:2525
-.example.com    smtp-dup:[127.0.0.1]:2525
-```
-
-### Step 4: Update transport map
-
-```bash
-postmap /etc/postfix/transport
-systemctl reload postfix
-```
-
-This configuration will route emails for `example.com` and its subdomains through your SMTP duplicator running on port 2525.
-
-## Building and Running
-
-### Native Build
-
-```bash
-# Build the application
-go build -o gosmtp-dup
-
-# Run with configuration file in current directory
-./gosmtp-dup
-```
-
-### Docker
-
-#### Using Pre-built Image from GitHub Registry
-
-```bash
-# Pull the latest image
-docker pull ghcr.io/cabonemailserver/gosmtp-dup:latest
-
-# Browse all available images at:
-# https://github.com/CaboneMailServer/GoSMTP-dup/pkgs/container/gosmtp-dup
-
-# Run with Docker (using environment variables)
 docker run -d \
   --name smtp-duplicator \
   -p 2525:2525 \
   -e SMTP_DUP_SMTP_LISTEN="0.0.0.0:2525" \
-  -e SMTP_DUP_SMTP_DOMAIN="mail.example.com" \
-  -e SMTP_DUP_RELAY_DESTINATION_PRIMARY="mailprimary.example.com:25" \
-  -e SMTP_DUP_RELAY_DESTINATION_BACKUPS="mail1.backup.com:25,mail2.backup.com:25" \
-  ghcr.io/cabonemailserver/gosmtp-dup:latest
-
-# Or run with config file
-docker run -d \
-  --name smtp-duplicator \
-  -p 2525:2525 \
-  -v $(pwd)/config-example.yaml:/app/config-example.yaml:ro \
+  -e SMTP_DUP_RELAY_DESTINATION_PRIMARY="primary.example.com:25" \
+  -e SMTP_DUP_RELAY_DESTINATION_BACKUPS="backup1.example.com:25,backup2.example.com:25" \
   ghcr.io/cabonemailserver/gosmtp-dup:latest
 ```
 
-#### Building Locally
+### Binary
 
 ```bash
-# Build Docker image
-docker build -t gosmtp-dup .
-
-# Run with Docker (mount config file)
-docker run -d \
-  --name smtp-duplicator \
-  -p 2525:2525 \
-  -v $(pwd)/config-example.yaml:/app/config-example.yaml:ro \
-  gosmtp-dup
-
-# Run with Docker Compose
-docker-compose up -d
+# Download for Linux
+wget https://github.com/CaboneMailServer/GoSMTP-dup/releases/latest/download/gosmtp-dup-linux-amd64
+chmod +x gosmtp-dup-linux-amd64
+./gosmtp-dup-linux-amd64
 ```
 
-#### Docker Compose Example
+## Basic Configuration
 
-Create a `docker-compose.yml` file:
+Create a `config.yaml` file or use environment variables:
 
+### YAML Config
 ```yaml
-version: '3.8'
-
-services:
-  smtp-duplicator:
-    image: ghcr.io/cabonemailserver/gosmtp-dup:latest
-    # Or build locally: build: .
-    ports:
-      - "2525:2525"
-    volumes:
-      - ./config-example.yaml:/app/config-example.yaml:ro
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "2525"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+smtp:
+  listen: "0.0.0.0:2525"
+  domain: "mail.example.com"
+relay:
+  destination_primary: "primary.example.com:25"
+  destination_backups:
+    - "backup1.example.com:25"
+    - "backup2.example.com:25"
 ```
+
+### Environment Variables
+```bash
+export SMTP_DUP_SMTP_LISTEN="0.0.0.0:2525"
+export SMTP_DUP_RELAY_DESTINATION_PRIMARY="primary.example.com:25"
+export SMTP_DUP_RELAY_DESTINATION_BACKUPS="backup1.example.com:25,backup2.example.com:25"
+```
+
+> 📚 **For detailed configuration options, migration scenarios, and advanced setups, see the [complete documentation](https://cabonemailserver.github.io/GoSMTP-dup/docs/configuration.html)**
+
+## Use Cases
+
+- 🔄 **Mail server migration**: Gradually migrate with real-time duplication
+- 🔒 **Email backup**: Ensure delivery to multiple servers
+- 📊 **Load distribution**: Distribute email load across servers
+- 🚨 **Disaster recovery**: Maintain backup mail servers
+
+## Downloads
+
+| Platform | Download |
+|----------|----------|
+| Linux AMD64 | [Download](https://github.com/CaboneMailServer/GoSMTP-dup/releases/latest/download/gosmtp-dup-linux-amd64) |
+| Linux ARM64 | [Download](https://github.com/CaboneMailServer/GoSMTP-dup/releases/latest/download/gosmtp-dup-linux-arm64) |
+| Windows AMD64 | [Download](https://github.com/CaboneMailServer/GoSMTP-dup/releases/latest/download/gosmtp-dup-windows-amd64.exe) |
+| macOS AMD64 | [Download](https://github.com/CaboneMailServer/GoSMTP-dup/releases/latest/download/gosmtp-dup-darwin-amd64) |
+| macOS ARM64 | [Download](https://github.com/CaboneMailServer/GoSMTP-dup/releases/latest/download/gosmtp-dup-darwin-arm64) |
+
+### Docker Images
+
+- **Registry**: [ghcr.io/cabonemailserver/gosmtp-dup](https://github.com/CaboneMailServer/GoSMTP-dup/pkgs/container/gosmtp-dup)
+- **Latest**: `ghcr.io/cabonemailserver/gosmtp-dup:latest`
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please open issues and pull requests on [GitHub](https://github.com/CaboneMailServer/GoSMTP-dup).
 

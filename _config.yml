@@ -1,0 +1,12 @@
+title: GoSMTP-dup
+description: SMTP relay server that duplicates incoming emails to multiple destinations for smooth mail server migration. Perfect for smooth email server migrations with real-time traffic duplication.
+show_downloads: true
+theme: jekyll-theme-cayman
+
+plugins:
+  - jekyll-mentions
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
