@@ -125,14 +125,14 @@ go build -o gosmtp-dup
 
 ```bash
 # Pull the latest image
-docker pull ghcr.io/yourusername/gosmtp-dup:latest
+docker pull ghcr.io/cabonemailserver/gosmtp-dup:latest
 
 # Run with Docker (mount config file)
 docker run -d \
   --name smtp-duplicator \
   -p 2525:2525 \
   -v $(pwd)/config-example.yaml:/app/config-example.yaml:ro \
-  ghcr.io/yourusername/gosmtp-dup:latest
+  ghcr.io/cabonemailserver/gosmtp-dup:latest
 ```
 
 #### Building Locally
@@ -161,7 +161,7 @@ version: '3.8'
 
 services:
   smtp-duplicator:
-    image: ghcr.io/yourusername/gosmtp-dup:latest
+    image: ghcr.io/cabonemailserver/gosmtp-dup:latest
     # Or build locally: build: .
     ports:
       - "2525:2525"
@@ -179,29 +179,34 @@ services:
 
 The project includes a GitHub Actions workflow that automatically:
 
-- **Builds Docker images** for `linux/amd64` and `linux/arm64` platforms
+- **Builds Docker images** for `linux/amd64` and `linux/arm64` platforms when you create a git tag
 - **Publishes to GitHub Container Registry** (`ghcr.io`)
 - **Creates tagged releases** when you push git tags (e.g., `v1.0.0`)
 - **Generates build attestations** for security and provenance
 
+### Creating a Release
+
+To trigger a new Docker image build:
+
+```bash
+# Create and push a new tag
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ### Available Tags
 
-- `latest` - Latest build from main branch
-- `vX.Y.Z` - Specific version releases
-- `main` - Latest main branch build
-- `develop` - Latest develop branch build
+- `latest` - Latest tagged release
+- `vX.Y.Z` - Specific version releases (e.g., `v1.0.0`, `v1.2.3`)
 
 ### Using Released Images
 
 ```bash
 # Use latest stable release
-docker pull ghcr.io/yourusername/gosmtp-dup:latest
+docker pull ghcr.io/cabonemailserver/gosmtp-dup:latest
 
 # Use specific version
-docker pull ghcr.io/yourusername/gosmtp-dup:v1.0.0
-
-# Use development version
-docker pull ghcr.io/yourusername/gosmtp-dup:develop
+docker pull ghcr.io/cabonemailserver/gosmtp-dup:v1.0.0
 ```
 
 ## Dependencies
