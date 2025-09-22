@@ -144,6 +144,9 @@ go build -o gosmtp-dup
 # Pull the latest image
 docker pull ghcr.io/cabonemailserver/gosmtp-dup:latest
 
+# Browse all available images at:
+# https://github.com/CaboneMailServer/GoSMTP-dup/pkgs/container/gosmtp-dup
+
 # Run with Docker (using environment variables)
 docker run -d \
   --name smtp-duplicator \

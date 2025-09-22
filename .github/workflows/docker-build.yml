@@ -93,3 +93,9 @@ jobs:
           # Push both tags
           buildah push "${IMAGE_NAME}:${VERSION}"
           buildah push "${IMAGE_NAME}:latest"
+
+          # Output registry links
+          echo "🐳 Docker image pushed successfully!"
+          echo "📦 Registry: https://github.com/CaboneMailServer/GoSMTP-dup/pkgs/container/gosmtp-dup"
+          echo "🏷️ Version: https://github.com/CaboneMailServer/GoSMTP-dup/pkgs/container/gosmtp-dup/${VERSION}"
+          echo "🏷️ Latest: https://github.com/CaboneMailServer/GoSMTP-dup/pkgs/container/gosmtp-dup/latest"
